@@ -6,38 +6,23 @@ const cors = require('cors');
 
 const app = express();
 
-// Middleware
 app.use(cors());
 app.use(express.json());
 
-// MongoDB Connection
-mongoose
-  .connect(process.env.MONGO_URI)
-  .then(() => {
-    console.log('MongoDB Connected');
-  })
-  .catch(error => {
-    console.log('MongoDB Connection Error:', error);
-  });
-
-// Order Schema
 const orderSchema = new mongoose.Schema(
   {
     name: {
       type: String,
       required: true,
     },
-
     address: {
       type: String,
       required: true,
     },
-
     bookTitle: {
       type: String,
       required: true,
     },
-
     price: {
       type: Number,
       required: true,
@@ -48,12 +33,18 @@ const orderSchema = new mongoose.Schema(
   }
 );
 
-// Order Model
 const Order = mongoose.model('Order', orderSchema);
 
-// POST API - Save Order
+app.get('/', (req, res) => {
+  res.json({
+    message: 'ShopApp API is running',
+  });
+});
+
 app.post('/orders', async (req, res) => {
   try {
+    console.log('ORDER BODY:', req.body);
+
     const {name, address, bookTitle, price} = req.body;
 
     if (
@@ -67,38 +58,50 @@ app.post('/orders', async (req, res) => {
       });
     }
 
+    const numericPrice = Number(price);
+
+    if (Number.isNaN(numericPrice)) {
+      return res.status(400).json({
+        message: 'Price must be a valid number',
+      });
+    }
+
     const order = new Order({
       name: name.trim(),
       address: address.trim(),
       bookTitle: bookTitle.trim(),
-      price: Number(price),
+      price: numericPrice,
     });
 
     await order.save();
+
+    console.log('ORDER SAVED:', order);
 
     res.status(201).json({
       message: 'Order saved successfully',
       order,
     });
   } catch (error) {
-    console.log(error);
+    console.log('ORDER ERROR:', error);
 
     res.status(500).json({
       message: 'Failed to save order',
+      error: error.message,
     });
   }
 });
 
-// Home API
-app.get('/', (req, res) => {
-  res.json({
-    message: 'ShopApp API is running',
-  });
-});
-
-// Server
 const PORT = process.env.PORT || 5000;
 
-app.listen(PORT, '0.0.0.0', () => {
-  console.log(`Server running on port ${PORT}`);
-});
+mongoose
+  .connect(process.env.MONGO_URI)
+  .then(() => {
+    console.log('MongoDB Connected');
+
+    app.listen(PORT, '0.0.0.0', () => {
+      console.log(`Server running on port ${PORT}`);
+    });
+  })
+  .catch(error => {
+    console.error('MongoDB Connection Error:', error);
+  });
