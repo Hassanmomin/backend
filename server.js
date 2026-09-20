@@ -3,8 +3,13 @@ require('dotenv').config();
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
+const multer = require('multer');
+
 
 const app = express();
+const upload = multer({
+  dest: './uploads',
+});
 
 app.use(cors());
 app.use(express.json());
@@ -89,6 +94,21 @@ app.post('/orders', async (req, res) => {
       error: error.message,
     });
   }
+});
+
+app.post('/upload-image', upload.single('photo'), (req, res) => {
+  console.log('FILE:', req.file);
+
+  if (!req.file) {
+    return res.status(400).json({
+      message: 'Photo is required',
+    });
+  }
+
+  res.status(201).json({
+    message: 'Photo uploaded successfully',
+    file: req.file,
+  });
 });
 
 const PORT = process.env.PORT || 5000;
